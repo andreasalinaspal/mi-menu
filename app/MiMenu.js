@@ -154,13 +154,14 @@ function AddMealModal({isOpen,onClose,onSave,mealType,recipes}){
 /* ═══════════════════════════════════════════
    MEAL DETAIL MODAL — Info + Compras
    ═══════════════════════════════════════════ */
-function MealDetailModal({isOpen,onClose,meal,linkedRecipe,onEditRecipe}){
+function MealDetailModal({isOpen,onClose,meal,linkedRecipe,onEditRecipe,onCreateRecipe}){
   const [tab,setTab]=useState("info");
   const [groceryItems,setGroceryItems]=useState([]);
   const [newG,setNewG]=useState("");
   const [editIngredients,setEditIngredients]=useState("");
   const [editSteps,setEditSteps]=useState("");
   const [editing,setEditing]=useState(false);
+  const [aiLoading,setAiLoading]=useState(false);
 
   useEffect(()=>{
     if(isOpen&&linkedRecipe?.ingredients){
@@ -235,8 +236,25 @@ function MealDetailModal({isOpen,onClose,meal,linkedRecipe,onEditRecipe}){
       </> : <>
         <div style={{textAlign:"center",padding:"20px 0"}}>
           <div style={{fontSize:36,marginBottom:8}}>📝</div>
-          <p style={{fontFamily:F.body,fontSize:14,color:C.textMuted,margin:"0 0 4px",lineHeight:1.5}}>Este plato no tiene receta vinculada</p>
-          <p style={{fontFamily:F.body,fontSize:12,color:C.textFaint,margin:0}}>Creá una en la pestaña "Recetas"</p>
+          <p style={{fontFamily:F.body,fontSize:14,color:C.textMuted,margin:"0 0 16px",lineHeight:1.5}}>Este plato no tiene receta vinculada</p>
+
+          <button onClick={async()=>{
+            if(aiLoading) return;
+            setAiLoading(true);
+            try{
+              const res=await fetch("/api/recipe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:meal.name,servings:meal.servings||4})});
+              const data=await res.json();
+              if(data.error) throw new Error(data.error);
+              onCreateRecipe(meal,{name:meal.name,description:data.description||"",ingredients:data.ingredients||"",steps:data.steps||""});
+            }catch(e){alert("No se pudo generar: "+e.message)}
+            setAiLoading(false);
+          }} disabled={aiLoading} style={{width:"100%",padding:14,background:aiLoading?"#EDE5DD":"linear-gradient(135deg,#9B4D42,#C4756A)",color:aiLoading?C.textMuted:"white",border:"none",borderRadius:14,fontSize:15,fontWeight:600,cursor:aiLoading?"default":"pointer",fontFamily:F.body,marginBottom:10,boxShadow:aiLoading?"none":"0 3px 12px rgba(155,77,66,0.25)"}}>
+            {aiLoading?"⏳ Generando receta...":"✨ Generar receta con IA"}
+          </button>
+
+          <button onClick={()=>onCreateRecipe(meal,{name:meal.name,description:"",ingredients:"",steps:""})} style={{width:"100%",padding:12,background:C.primaryLight,color:C.primary,border:"none",borderRadius:12,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:F.body}}>
+            ✎ Crear receta manualmente
+          </button>
         </div>
       </>}
 
@@ -563,7 +581,16 @@ export default function MiMenu(){
 
     {/* ─── MODALS ─── */}
     <AddMealModal isOpen={addModal.open} onClose={()=>setAddModal({open:false,mealType:null})} onSave={saveMeal} mealType={addModal.mealType} recipes={recipes}/>
-    <MealDetailModal isOpen={detailModal.open} onClose={()=>setDetailModal({open:false,meal:null})} meal={detailModal.meal} linkedRecipe={findRecipe(detailModal.meal)} onEditRecipe={editRecipeField}/>
+    <MealDetailModal isOpen={detailModal.open} onClose={()=>setDetailModal({open:false,meal:null})} meal={detailModal.meal} linkedRecipe={findRecipe(detailModal.meal)} onEditRecipe={editRecipeField} onCreateRecipe={(meal,recipeData)=>{
+      const newId=Date.now();
+      setRecipes(p=>[...p,{id:newId,...recipeData}]);
+      // Link meal to new recipe
+      const mKey=Object.entries(todayMeals).find(([k,v])=>v.name===meal.name&&v.servings===meal.servings);
+      if(mKey){
+        setMeals(p=>({...p,[todayKey]:{...p[todayKey],[mKey[0]]:{...p[todayKey][mKey[0]],recipeId:newId}}}));
+        setDetailModal({open:true,meal:{...meal,recipeId:newId}});
+      }
+    }}/>
     <RecipeModal isOpen={recipeModal.open} onClose={()=>setRecipeModal({open:false,existing:null})} onSave={saveRecipe} existing={recipeModal.existing}/>
   </div>;
 }
