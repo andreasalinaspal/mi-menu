@@ -288,15 +288,31 @@ function RecipeModal({isOpen,onClose,onSave,existing}){
   const [desc,setDesc]=useState("");
   const [ingredients,setIngredients]=useState("");
   const [steps,setSteps]=useState("");
+  const [aiLoading,setAiLoading]=useState(false);
   const ref=useRef(null);
 
   useEffect(()=>{
     if(isOpen){
       setName(existing?.name||"");setDesc(existing?.description||"");
       setIngredients(existing?.ingredients||"");setSteps(existing?.steps||"");
+      setAiLoading(false);
       setTimeout(()=>ref.current?.focus(),150);
     }
   },[isOpen]);
+
+  async function generateWithAI(){
+    if(!name.trim()||aiLoading) return;
+    setAiLoading(true);
+    try{
+      const res=await fetch("/api/recipe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name.trim(),servings:4})});
+      const data=await res.json();
+      if(data.error) throw new Error(data.error);
+      if(data.description) setDesc(data.description);
+      if(data.ingredients) setIngredients(data.ingredients);
+      if(data.steps) setSteps(data.steps);
+    }catch(e){alert("No se pudo generar: "+e.message)}
+    setAiLoading(false);
+  }
 
   if(!isOpen) return null;
 
@@ -306,6 +322,10 @@ function RecipeModal({isOpen,onClose,onSave,existing}){
 
       <label style={{fontFamily:F.body,fontSize:12,fontWeight:700,color:C.textMuted,letterSpacing:0.5,display:"block",marginBottom:6}}>NOMBRE</label>
       <Input inputRef={ref} value={name} onChange={e=>setName(e.target.value)} placeholder="Ej: Tarta de brócoli"/>
+
+      {name.trim()&&<button onClick={generateWithAI} disabled={aiLoading} style={{width:"100%",marginTop:12,padding:12,background:aiLoading?"#EDE5DD":"linear-gradient(135deg,#9B4D42,#C4756A)",color:aiLoading?C.textMuted:"white",border:"none",borderRadius:12,fontSize:13,fontWeight:600,cursor:aiLoading?"default":"pointer",fontFamily:F.body,transition:"all 0.2s",boxShadow:aiLoading?"none":"0 3px 12px rgba(155,77,66,0.25)"}}>
+        {aiLoading?"⏳ Generando receta...":"✨ Generar con IA"}
+      </button>}
 
       <label style={{fontFamily:F.body,fontSize:12,fontWeight:700,color:C.textMuted,letterSpacing:0.5,display:"block",marginTop:16,marginBottom:6}}>DESCRIPCIÓN</label>
       <TextArea value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Breve descripción del plato..." rows={2}/>
