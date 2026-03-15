@@ -272,22 +272,13 @@ function MealDetailModal({ isOpen, onClose, meal, onUpdateMeal }) {
     if (recipe || loading) return;
     setLoading(true);
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/recipe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [{
-            role: "user",
-            content: `Genera una receta para "${meal.name}" para ${meal.servings || 2} persona(s) en español. Incluye una estimación de calorías por persona. Responde SOLO en JSON sin backticks ni markdown, con este formato exacto:
-{"title":"nombre","time":"30 min","calories_per_person":450,"ingredients":["200g de ingrediente 1","1 unidad de ingrediente 2"],"steps":["Paso 1 detallado","Paso 2 detallado"]}`
-          }]
-        })
+        body: JSON.stringify({ name: meal.name, servings: meal.servings || 2 })
       });
-      const data = await res.json();
-      const text = data.content?.find(b => b.type === "text")?.text || "";
-      const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+      const parsed = await res.json();
+      if (parsed.error) throw new Error(parsed.error);
       setRecipe(parsed);
       setEditText(parsed.ingredients.join("\n"));
       const autoGrocery = parsed.ingredients.map((ing, i) => ({
@@ -725,7 +716,24 @@ export default function MiMenu() {
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState(today);
   const [meals, setMeals] = useState({});
+  const [mealsLoaded, setMealsLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState("hoy");
+
+  // Load meals from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("mi-menu-meals");
+      if (saved) setMeals(JSON.parse(saved));
+    } catch {}
+    setMealsLoaded(true);
+  }, []);
+
+  // Save meals to localStorage on change
+  useEffect(() => {
+    if (mealsLoaded) {
+      try { localStorage.setItem("mi-menu-meals", JSON.stringify(meals)); } catch {}
+    }
+  }, [meals, mealsLoaded]);
   const [addModal, setAddModal] = useState({ open: false, mealType: null });
   const [detailModal, setDetailModal] = useState({ open: false, meal: null, dateKey: null, mealKey: null });
 
