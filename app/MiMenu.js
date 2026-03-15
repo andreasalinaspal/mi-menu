@@ -781,7 +781,35 @@ export default function MiMenu() {
           }}>?</div>
         </div>
 
-        {/* Week */}
+        {/* Week nav */}
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          marginBottom: 8, padding: "0 2px"
+        }}>
+          <button onClick={() => {
+            const prev = new Date(selectedDate);
+            prev.setDate(prev.getDate() - 7);
+            setSelectedDate(prev);
+          }} style={{
+            background: "none", border: "none", fontSize: 18, color: C.primary,
+            cursor: "pointer", padding: "4px 8px", fontWeight: 700, fontFamily: fonts.body
+          }}>‹</button>
+          <span style={{
+            fontSize: 13, fontWeight: 600, color: C.textMuted, fontFamily: fonts.body
+          }}>
+            {weekDates[0].getDate()} {MONTHS_ES[weekDates[0].getMonth()].slice(0, 3)} — {weekDates[6].getDate()} {MONTHS_ES[weekDates[6].getMonth()].slice(0, 3)}
+          </span>
+          <button onClick={() => {
+            const next = new Date(selectedDate);
+            next.setDate(next.getDate() + 7);
+            setSelectedDate(next);
+          }} style={{
+            background: "none", border: "none", fontSize: 18, color: C.primary,
+            cursor: "pointer", padding: "4px 8px", fontWeight: 700, fontFamily: fonts.body
+          }}>›</button>
+        </div>
+
+        {/* Week strip */}
         <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
           {weekDates.map((d, i) => {
             const isSelected = dateKey(d) === dateKey(selectedDate);
