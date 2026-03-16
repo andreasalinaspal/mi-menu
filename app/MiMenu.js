@@ -154,7 +154,7 @@ function AddMealModal({isOpen,onClose,onSave,mealType,recipes}){
 /* ═══════════════════════════════════════════
    MEAL DETAIL MODAL — Info + Compras
    ═══════════════════════════════════════════ */
-function MealDetailModal({isOpen,onClose,meal,linkedRecipe,onEditRecipe,onCreateRecipe}){
+function MealDetailModal({isOpen,onClose,meal,linkedRecipe,onEditRecipe,onCreateRecipe,onChangeMeal}){
   const [tab,setTab]=useState("info");
   const [groceryItems,setGroceryItems]=useState([]);
   const [newG,setNewG]=useState("");
@@ -200,6 +200,7 @@ function MealDetailModal({isOpen,onClose,meal,linkedRecipe,onEditRecipe,onCreate
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           <span style={{background:"#E6E3F0",color:"#6B5E9B",padding:"4px 10px",borderRadius:8,fontSize:12,fontFamily:F.body,fontWeight:600}}>👥 {meal.servings} pers.</span>
           {linkedRecipe&&<span style={{background:"#E8EFE3",color:"#5C7A4F",padding:"4px 10px",borderRadius:8,fontSize:12,fontFamily:F.body,fontWeight:600}}>📋 Receta guardada</span>}
+          {linkedRecipe?.calories&&<span style={{background:"#FFF3E0",color:"#E65100",padding:"4px 10px",borderRadius:8,fontSize:12,fontFamily:F.body,fontWeight:600}}>🔥 {linkedRecipe.calories} kcal</span>}
         </div>
       </div>
     </div>
@@ -254,7 +255,7 @@ function MealDetailModal({isOpen,onClose,meal,linkedRecipe,onEditRecipe,onCreate
               const res=await fetch("/api/recipe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:meal.name,servings:meal.servings||4})});
               const data=await res.json();
               if(data.error) throw new Error(data.error);
-              onCreateRecipe(meal,{name:meal.name,description:data.description||"",ingredients:data.ingredients||"",steps:data.steps||""});
+              onCreateRecipe(meal,{name:meal.name,description:data.description||"",ingredients:data.ingredients||"",steps:data.steps||"",calories:data.calories_per_person||null});
             }catch(e){alert("No se pudo generar: "+e.message)}
             setAiLoading(false);
           }} disabled={aiLoading} style={{width:"100%",padding:14,background:aiLoading?"#EDE5DD":"linear-gradient(135deg,#9B4D42,#C4756A)",color:aiLoading?C.textMuted:"white",border:"none",borderRadius:14,fontSize:15,fontWeight:600,cursor:aiLoading?"default":"pointer",fontFamily:F.body,marginBottom:10,boxShadow:aiLoading?"none":"0 3px 12px rgba(155,77,66,0.25)"}}>
@@ -269,6 +270,8 @@ function MealDetailModal({isOpen,onClose,meal,linkedRecipe,onEditRecipe,onCreate
 
       <h3 style={{fontFamily:F.heading,fontSize:17,fontWeight:700,color:C.text,margin:"8px 0 10px"}}>🔗 Buscar referencias</h3>
       <RefButtons name={meal.name}/>
+
+      <button onClick={()=>onChangeMeal(meal)} style={{width:"100%",marginTop:20,padding:12,background:"#FFF3E0",color:"#A67B3D",border:"2px solid #E8D5B0",borderRadius:12,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:F.body}}>🔄 Cambiar plato</button>
     </div>}
 
     {tab==="compras"&&<div style={{padding:"16px 24px 32px"}}>
@@ -315,6 +318,7 @@ function RecipeModal({isOpen,onClose,onSave,existing}){
   const [desc,setDesc]=useState("");
   const [ingredients,setIngredients]=useState("");
   const [steps,setSteps]=useState("");
+  const [calories,setCalories]=useState("");
   const [aiLoading,setAiLoading]=useState(false);
   const ref=useRef(null);
 
@@ -322,6 +326,7 @@ function RecipeModal({isOpen,onClose,onSave,existing}){
     if(isOpen){
       setName(existing?.name||"");setDesc(existing?.description||"");
       setIngredients(existing?.ingredients||"");setSteps(existing?.steps||"");
+      setCalories(existing?.calories||"");
       setAiLoading(false);
       setTimeout(()=>ref.current?.focus(),150);
     }
@@ -337,6 +342,7 @@ function RecipeModal({isOpen,onClose,onSave,existing}){
       if(data.description) setDesc(data.description);
       if(data.ingredients) setIngredients(data.ingredients);
       if(data.steps) setSteps(data.steps);
+      if(data.calories_per_person) setCalories(String(data.calories_per_person));
     }catch(e){alert("No se pudo generar: "+e.message)}
     setAiLoading(false);
   }
@@ -364,13 +370,16 @@ function RecipeModal({isOpen,onClose,onSave,existing}){
       <label style={{fontFamily:F.body,fontSize:12,fontWeight:700,color:C.textMuted,letterSpacing:0.5,display:"block",marginTop:16,marginBottom:6}}>PREPARACIÓN</label>
       <TextArea value={steps} onChange={e=>setSteps(e.target.value)} placeholder="Describe los pasos de preparación..." rows={5}/>
 
+      <label style={{fontFamily:F.body,fontSize:12,fontWeight:700,color:C.textMuted,letterSpacing:0.5,display:"block",marginTop:16,marginBottom:6}}>🔥 CALORÍAS POR PERSONA</label>
+      <input type="number" value={calories} onChange={e=>setCalories(e.target.value)} placeholder="Ej: 450" style={{width:"100%",padding:"13px 16px",fontSize:16,border:`2px solid ${C.border}`,borderRadius:14,fontFamily:F.body,outline:"none",background:C.bg,boxSizing:"border-box",transition:"border-color 0.2s"}} onFocus={e=>e.target.style.borderColor=C.primary} onBlur={e=>e.target.style.borderColor=C.border}/>
+
       <h4 style={{fontFamily:F.heading,fontSize:15,fontWeight:700,color:C.text,margin:"20px 0 8px"}}>🔗 Buscar referencias</h4>
       {name.trim()&&<RefButtons name={name}/>}
       {!name.trim()&&<p style={{fontFamily:F.body,fontSize:12,color:C.textFaint,margin:0}}>Escribí el nombre para buscar</p>}
 
       <div style={{display:"flex",gap:10,marginTop:24}}>
         <button onClick={onClose} style={{flex:1,padding:14,background:C.primaryLight,color:C.primary,border:"none",borderRadius:14,fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:F.body}}>Cancelar</button>
-        <button onClick={()=>{if(name.trim())onSave({name:name.trim(),description:desc,ingredients,steps})}} disabled={!name.trim()} style={{flex:2,padding:14,background:name.trim()?C.primary:"#DDD",color:"white",border:"none",borderRadius:14,fontSize:15,fontWeight:600,cursor:name.trim()?"pointer":"default",fontFamily:F.body}}>
+        <button onClick={()=>{if(name.trim())onSave({name:name.trim(),description:desc,ingredients,steps,calories:calories?Number(calories):null})}} disabled={!name.trim()} style={{flex:2,padding:14,background:name.trim()?C.primary:"#DDD",color:"white",border:"none",borderRadius:14,fontSize:15,fontWeight:600,cursor:name.trim()?"pointer":"default",fontFamily:F.body}}>
           {existing?"Guardar cambios":"Crear receta"} ✓
         </button>
       </div>
@@ -389,7 +398,8 @@ function RecipeDetail({recipe,onBack,onEdit,onDelete}){
       <MealImage query={recipe.name} size={90}/>
       <div>
         <h2 style={{fontFamily:F.heading,fontSize:22,fontWeight:700,color:C.text,margin:"0 0 6px"}}>{recipe.name}</h2>
-        {recipe.description&&<p style={{fontFamily:F.body,fontSize:13,color:C.textMuted,margin:0,lineHeight:1.5}}>{recipe.description}</p>}
+        {recipe.description&&<p style={{fontFamily:F.body,fontSize:13,color:C.textMuted,margin:"0 0 6px",lineHeight:1.5}}>{recipe.description}</p>}
+        {recipe.calories&&<span style={{background:"#FFF3E0",color:"#E65100",padding:"4px 10px",borderRadius:8,fontSize:12,fontFamily:F.body,fontWeight:600,display:"inline-block"}}>🔥 {recipe.calories} kcal/persona</span>}
       </div>
     </div>
 
@@ -432,7 +442,7 @@ export default function MiMenu(){
   const [loaded,setLoaded]=useState(false);
 
   // Modals
-  const [addModal,setAddModal]=useState({open:false,mealType:null});
+  const [addModal,setAddModal]=useState({open:false,mealType:null,editKey:null});
   const [detailModal,setDetailModal]=useState({open:false,meal:null});
   const [recipeModal,setRecipeModal]=useState({open:false,existing:null});
   const [viewRecipe,setViewRecipe]=useState(null);
@@ -448,8 +458,11 @@ export default function MiMenu(){
   const dayColor=DAY_COLORS[dayOfWeek];
 
   function saveMeal({name,servings,recipeId}){
-    setMeals(p=>({...p,[todayKey]:{...p[todayKey],[addModal.mealType.key]:{name,servings,recipeId:recipeId||null,typeLabel:addModal.mealType.label}}}));
-    setAddModal({open:false,mealType:null});
+    const mealKey=addModal.editKey||addModal.mealType.key;
+    const typeLabel=addModal.mealType?.label||MEAL_TYPES.find(m=>m.key===mealKey)?.label||"";
+    setMeals(p=>({...p,[todayKey]:{...p[todayKey],[mealKey]:{name,servings,recipeId:recipeId||null,typeLabel}}}));
+    setAddModal({open:false,mealType:null,editKey:null});
+    setDetailModal({open:false,meal:null});
   }
   function saveRecipe(data){
     if(recipeModal.existing){
@@ -569,6 +582,7 @@ export default function MiMenu(){
               {r.description&&<div style={{fontSize:12,color:C.textMuted,fontFamily:F.body,marginTop:2}}>{r.description.slice(0,60)}{r.description.length>60?"...":""}</div>}
               <div style={{fontSize:11,color:C.textFaint,fontFamily:F.body,marginTop:3}}>
                 {r.ingredients?`${r.ingredients.split("\n").filter(l=>l.trim()).length} ingredientes`:"Sin ingredientes"}
+                {r.calories?` · 🔥 ${r.calories} kcal`:""}
               </div>
             </div>
             <div style={{color:C.border,fontSize:20}}>›</div>
@@ -589,8 +603,14 @@ export default function MiMenu(){
     </div>
 
     {/* ─── MODALS ─── */}
-    <AddMealModal isOpen={addModal.open} onClose={()=>setAddModal({open:false,mealType:null})} onSave={saveMeal} mealType={addModal.mealType} recipes={recipes}/>
-    <MealDetailModal isOpen={detailModal.open} onClose={()=>setDetailModal({open:false,meal:null})} meal={detailModal.meal} linkedRecipe={findRecipe(detailModal.meal)} onEditRecipe={editRecipeField} onCreateRecipe={(meal,recipeData)=>{
+    <AddMealModal isOpen={addModal.open} onClose={()=>setAddModal({open:false,mealType:null,editKey:null})} onSave={saveMeal} mealType={addModal.mealType} recipes={recipes}/>
+    <MealDetailModal isOpen={detailModal.open} onClose={()=>setDetailModal({open:false,meal:null})} meal={detailModal.meal} linkedRecipe={findRecipe(detailModal.meal)} onEditRecipe={editRecipeField} onChangeMeal={(meal)=>{
+      const mKey=Object.entries(todayMeals).find(([k,v])=>v.name===meal.name&&v.servings===meal.servings);
+      if(mKey){
+        const mt=MEAL_TYPES.find(m=>m.key===mKey[0]);
+        setAddModal({open:true,mealType:mt,editKey:mKey[0]});
+      }
+    }} onCreateRecipe={(meal,recipeData)=>{
       const newId=Date.now();
       setRecipes(p=>[...p,{id:newId,...recipeData}]);
       // Link meal to new recipe
