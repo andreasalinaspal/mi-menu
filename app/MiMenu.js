@@ -163,15 +163,24 @@ function MealDetailModal({isOpen,onClose,meal,linkedRecipe,onEditRecipe,onCreate
   const [editing,setEditing]=useState(false);
   const [aiLoading,setAiLoading]=useState(false);
 
+  // Track the recipe id to detect when linkedRecipe changes
+  const prevRecipeId=useRef(null);
+
   useEffect(()=>{
-    if(isOpen&&linkedRecipe?.ingredients){
-      setGroceryItems(linkedRecipe.ingredients.split("\n").filter(l=>l.trim()).map((t,i)=>({id:Date.now()+i,text:t.trim(),checked:false})));
-      setEditIngredients(linkedRecipe.ingredients);
-      setEditSteps(linkedRecipe.steps||"");
+    if(!isOpen){setTab("info");setGroceryItems([]);setNewG("");setEditing(false);setAiLoading(false);prevRecipeId.current=null;return}
+    // When modal opens or linkedRecipe changes, refresh grocery + edit fields
+    const rid=linkedRecipe?.id||null;
+    if(rid!==prevRecipeId.current){
+      if(linkedRecipe?.ingredients){
+        setGroceryItems(linkedRecipe.ingredients.split("\n").filter(l=>l.trim()).map((t,i)=>({id:Date.now()+i,text:t.trim(),checked:false})));
+        setEditIngredients(linkedRecipe.ingredients);
+        setEditSteps(linkedRecipe.steps||"");
+      } else {
+        setGroceryItems([]);setEditIngredients("");setEditSteps("");
+      }
+      prevRecipeId.current=rid;
     }
-    if(isOpen&&!linkedRecipe){setGroceryItems([]);setEditIngredients("");setEditSteps("")}
-    if(!isOpen){setTab("info");setGroceryItems([]);setNewG("");setEditing(false)}
-  },[isOpen]);
+  },[isOpen,linkedRecipe]);
 
   if(!isOpen||!meal) return null;
 
