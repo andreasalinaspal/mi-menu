@@ -13,7 +13,7 @@ export async function POST(request) {
         max_tokens: 1000,
         messages: [{
           role: "user",
-          content: `Genera una receta para "${name}" para ${servings || 4} persona(s) en español. Responde SOLO en JSON sin backticks ni markdown, con este formato exacto:
+          content: `Genera una receta para "${name}" para ${servings || 4} persona(s) en español. La receta debe ser con enfoque peruano/latinoamericano: usa ingredientes que se consiguen fácilmente en mercados y supermercados de Perú (Lima). Si el plato es internacional, adaptalo con ingredientes locales disponibles en Perú. Sé conciso y práctico. Responde SOLO en JSON sin backticks ni markdown, con este formato exacto:
 {"description":"breve descripción del plato en 1 línea","calories_per_person":450,"ingredients":"200g de harina\\n3 huevos\\n1 taza de leche\\nSal a gusto","steps":"1. Primer paso detallado\\n2. Segundo paso detallado\\n3. Tercer paso"}`
         }]
       })
